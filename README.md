@@ -405,7 +405,7 @@ its underlying components such as MapReduce, Tez, YARN, and HDFS.
 ### TEZ
 
 Tez is a more efficient way of organizing jobs than MapReduce. It can be approximately 10 times faster than MapReduce
-for certain workloads.
+for certain workloads. You can use Tez in Ambari by selecting the 'Execute on Tez' option when running a Pig script.
 
 ### Running Pig
 
@@ -420,14 +420,20 @@ There are multiple ways to run Pig scripts:
 To find the oldest movie with a 5-star rating, you can follow these Pig Latin steps:
 
 ```pig
-ratings = LOAD '/user/maria_dev/ml-100k/u.data' AS (userID:int, movieID:int, rating:int, ratingTime:int);
-metadata = LOAD '/user/maria_dev/ml-100k/u.item' USING PigStorage('|') AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:chararray);
+ratings = LOAD '/user/maria_dev/ml-100k/u.data' 
+          AS (userID:int, movieID:int, rating:int, ratingTime:int);
+          
+metadata = LOAD '/user/maria_dev/ml-100k/u.item' 
+           USING PigStorage('|') 
+           AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:chararray);
 
-nameLookup = FOREACH metadata GENERATE movieID, movieTitle, ToUnixTime(ToDate(releaseDate, 'dd-MM-yyyy')) AS releaseTime;
+nameLookup = FOREACH metadata 
+             GENERATE movieID, movieTitle, ToUnixTime(ToDate(releaseDate, 'dd-MMM-yyyy')) AS releaseTime;
 
 ratingsByMovie = GROUP ratings BY movieID;
 
-avgRatings = FOREACH ratingsByMovie GENERATE group AS movieID, AVG(ratings.rating) AS avgRating;
+avgRatings = FOREACH ratingsByMovie 
+             GENERATE group AS movieID, AVG(ratings.rating) AS avgRating;
 
 filterStarMovies = FILTER avgRatings BY avgRating > 4.0;
 
@@ -492,13 +498,128 @@ DUMP oldestFiveStarMovies;
 Find the most-rated one-star movie (less than 2.0 rating, sort by total number of ratings)
 
 ```pig
-  ratings = LOAD '/user/maria_dev/ml-100k/u.data' AS (userID:int, movieID:int, rating:int, ratingTime:int);
-  metadata = LOAD ''/user/maria_dev/ml-100k/u.item' USING PigStorage('|') AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:carrarray);
-  nameLookup = FOREACH metadata GENERATE movieID, movieTitle, ToUnixTime(ToDate(releaseDate, 'dd-MM-yyy')) AS releaseTime;
+  ratings = LOAD '/user/maria_dev/ml-100k/u.data' 
+            AS (userID:int, movieID:int, rating:int, ratingTime:int);
+            
+  metadata = LOAD '/user/maria_dev/ml-100k/u.item' 
+             USING PigStorage('|') 
+             AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:chararray);
+             
+  nameLookup = FOREACH metadata GENERATE movieID, movieTitle;
+               
   ratingsByMovie = GROUP ratings BY movieID;
-  avgRatingsWithCount = FOREACH ratingsByMovie GENERATE group AS movieID, AVG(ratings.rating) AS avgRating, COUNT(ratings.rating) AS ratingsCount;
+  
+  avgRatingsWithCount = FOREACH ratingsByMovie 
+                        GENERATE group AS movieID, AVG(ratings.rating) AS avgRating, COUNT(ratings.rating) AS ratingsCount;
+                        
   twoStarMovies = FILTER avgRatingsWithCount BY avgRating < 2.0;
+  
   twoStarMoviesWithData = JOIN twoStarMovies BY movieID, nameLookup BY movieID;
-  mostOneStarRatedMovies = ORDER twoStarMoviesWithData BY ratingsCount;
+  
+  mostOneStarRatedMovies = ORDER twoStarMoviesWithData BY ratingsCount DESC;
+  
   DUMP mostOneStarRatedMovies;
 ```
+
+---
+
+## Spark Core
+
+- A fast and general engine for large-scale data processing
+- It's scalable
+    - Driver Program (Spark Context) -> Cluster Manager (Spark, MESOS, YARN) -> Executors (Cache, Tasks)
+- It's fast
+    - ~100x faster than Hadoop MapReduce in memory or ~10x faster on disk
+    - DAG (Directed Acyclic Graph) engine optimizes workflows
+- Code in Java, Scala, Python
+- Built around Resilient Distributed Datasets (RDDs)
+- Spark 2.0 introduced Datasets on top of RDDs
+- Written in Scala
+- We'll use Python but for production, Scala is recommended (usage is similar)
+
+### Components and Libraries (apart from Spark Core)
+
+- Spark Streaming (real-time processing)
+- Spark SQL (SQL and structured data processing)
+- MLlib (machine learning)
+- GraphX (graph processing)
+
+### Resilient Distributed Datasets (RDDs)
+
+- RDDs are the core abstraction in Spark
+- Easily distributed across a cluster
+- Fault-tolerant
+- Looks like a dataset to the user
+
+#### SparkContext
+
+- Created by the driver program
+- Makes RDDs resilient and distributed
+- Creates RDDs
+- Spark shell automatically creates a SparkContext ("sc")
+
+#### Creating RDDs
+
+- Create from a collection
+    - `nums = parallelize([1, 2, 3, 4])`
+- Create from a file
+    - `sc.textFile("file.txt")` or `sc.wholeTextFiles("dir")` (e.g. s3n://, hdfs://)
+- Create from HIVE context
+    ```python
+    hiveCtx = HiveContext(sc)
+    rows = hiveCtx.sql("SELECT name, age FROM users")
+    ```
+- Any database
+    - JDBC
+    - Cassandra
+    - HBase
+    - Elasticsearch
+    - JSON, CSV, sequence files, object files, various compressed formats, etc.
+
+#### Transforming RDDs
+
+- map: apply a function to each item in the RDD
+- flatMap: each input item can be mapped to 0 or more output items
+- filter: return a new RDD with a subset of items in the file
+- distinct: return a new RDD with distinct items from the original RDD
+- sample: create a smaller RDD from a larger RDD
+- union, intersection, subtract, cartesian: combine RDDs
+
+**RDD Example - map:**
+
+```python
+rdd = sc.parallelize([1, 2, 3, 4])
+squareRDD = rdd.map(lambda x: x * x)
+```
+
+This yields a new RDD with the following elements: 1, 4, 9, 16
+
+*Lambda explanation:*
+
+```python
+rdd.map(lambda x: x * x)
+
+# is equivalent to
+
+def square(x):
+    return x * x
+
+rdd.map(square)
+```
+
+#### RDD Actions
+
+Take one RDD and turn it into another
+
+- collect: return all items in the RDD to the driver program
+- count: return the number of items in the RDD
+- countByValue: return the count of each unique value in the RDD as a dictionary
+- take: return the first n items of the RDD
+- top: return the top n items
+- reduce: aggregate the elements of the RDD using a function
+- ...
+
+#### Lazy Evaluation
+
+- Nothing is computed until an action is called
+    - Transformations are not executed until an action is called
