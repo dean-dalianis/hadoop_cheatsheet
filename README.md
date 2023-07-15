@@ -544,21 +544,21 @@ Find the most-rated one-star movie (less than 2.0 rating, sort by total number o
 - MLlib (machine learning)
 - GraphX (graph processing)
 
-### Resilient Distributed Datasets (RDDs)
+## Resilient Distributed Datasets (RDDs)
 
 - RDDs are the core abstraction in Spark
 - Easily distributed across a cluster
 - Fault-tolerant
 - Looks like a dataset to the user
 
-#### SparkContext
+### SparkContext
 
 - Created by the driver program
 - Makes RDDs resilient and distributed
 - Creates RDDs
 - Spark shell automatically creates a SparkContext ("sc")
 
-#### Creating RDDs
+### Creating RDDs
 
 - Create from a collection
     - `nums = parallelize([1, 2, 3, 4])`
@@ -576,7 +576,7 @@ Find the most-rated one-star movie (less than 2.0 rating, sort by total number o
     - Elasticsearch
     - JSON, CSV, sequence files, object files, various compressed formats, etc.
 
-#### Transforming RDDs
+### Transforming RDDs
 
 - map: apply a function to each item in the RDD
 - flatMap: each input item can be mapped to 0 or more output items
@@ -607,7 +607,7 @@ def square(x):
 rdd.map(square)
 ```
 
-#### RDD Actions
+### RDD Actions
 
 Take one RDD and turn it into another
 
@@ -619,7 +619,12 @@ Take one RDD and turn it into another
 - reduce: aggregate the elements of the RDD using a function
 - ...
 
-#### Lazy Evaluation
+### Lazy Evaluation
 
 - Nothing is computed until an action is called
     - Transformations are not executed until an action is called
+
+## RDD hands-on Example: Find the movie with the lowest rating
+
+```python
+```
