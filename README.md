@@ -316,7 +316,6 @@ To solve the problem of analyzing movie ratings using MapReduce, we can follow t
     from mrjob.step import MRStep
     
     class RatingsBreakdown(MRJob):
-        # Tells the MRJob framework what functions are used for MAPPERS & REDUCERS in our job
         def steps(self):
             return [
                 MRStep(mapper=self.mapper_get_ratings,
@@ -324,7 +323,7 @@ To solve the problem of analyzing movie ratings using MapReduce, we can follow t
             ]
     
         def mapper_get_ratings(self, _, line):
-            (userID, movieID, rating, releaseDate) = line.split('\t')
+            (userID, movieID, rating, timestamp) = line.split('\t')
             yield rating, 1
     
         def reducer_count_ratings(self, key, values):
@@ -373,7 +372,6 @@ from mrjob.job import MRJob
 from mrjob.step import MRStep
 
 class MovieViewsBreakdown(MRJob):
-    # Tells the MRJob framework what functions are used for MAPPERS & REDUCERS in our job
     def steps(self):
         return [
             MRStep(mapper=self.mapper_get_ratings,
@@ -382,17 +380,18 @@ class MovieViewsBreakdown(MRJob):
         ]
 
     def mapper_get_ratings(self, _, line):
-        (userID, movieID, rating) = line.split('\t')
+        (userID, movieID, rating, timestamp) = line.split('\t')
         yield movieID, 1
 
     def reducer_count_ratings(self, key, values):
-        yield sum(values), key
+        yield str(sum(values)).zfill(5), key
 
     def reducer_sorted_output(self, key, values):
-        yield key, values
+        for movie in movies:
+            yield movie, count
 
 if __name__ == '__main__':
-    RatingsBreakdown.run()
+    MovieViewsBreakdown.run()
 ```
 
 ---
