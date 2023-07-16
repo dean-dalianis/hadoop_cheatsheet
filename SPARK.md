@@ -1,4 +1,4 @@
-# Spark
+# Apache Spark
 
 ## Spark Core
 
@@ -14,7 +14,7 @@
 - Written in Scala
 - We'll use Python but for production, Scala is recommended (usage is similar)
 
-### Components and Libraries (apart from Spark Core)
+## Components and Libraries (apart from Spark Core)
 
 - Spark Streaming (real-time processing)
 - Spark SQL (SQL and structured data processing)
