@@ -257,9 +257,75 @@ You can only have two of these at the same time. Cassandra is AP.
     - Use Spark for analytics on Cassandra data
     - Use Spark to transform data and store it into Cassandra for transactional use
 
+### Setting up Cassandra and creating a table
+
+1. Log into the VM
+   ```bash
+   ssh maria_dev@localhost -p 2222
+   sudo su
+   ``` 
+2. Create the Cassandra repository file:
+   ```bash
+   cd /etc/yum.repos.d/
+   nano datastax.repo
+   ```
+3. Paste the following into the file:
+   ```bash
+    [datastax]
+    name = DataStax Repo for Apache Cassandra
+    baseurl = http://rpm.datastax.com/community
+    enabled = 1
+    gpgcheck = 0
+    ```
+4. Install Cassandra
+    ```bash
+    yum install dsc30
+    ```
+5. Start Cassandra
+    ```bash
+    service cassandra start
+    ```
+6. Start cqsh
+    ```bash
+    cqlsh --cqlversion=3.4.0
+    ```
+7. Create a keyspace (a keyspace in Cassandra is like a database in MySQL)
+    ```bash
+    CREATE KEYSPACE movielens WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+    ```
+8. Use the keyspace
+    ```bash
+    USE movielens;
+    ```
+9. Create a table
+    ```bash
+    CREATE TABLE users (user_id int, age int, gender text, occupation text, zip text, PRIMARY KEY (user_id));
+    DESCRIBE TABLE users;
+    SELECT * FROM users;
+    exit;
+    ```
+
+### Import the Users table into Cassandra using Spark
+
+1. Get a script to import the users table and run it with Spark - make sure the u.user file is in HDFS
+   under `user/maria_dev/ml-100k/u.user`
+   ```bash
+    wget http://media.sundog-soft.com/hadoop/CassandraSpark.py
+    spark-submit --packages datastax:spark-cassandra-connector:2.6.5-M2-s_2.11 CassandraSpark.py
+   ```
+2. Check the results
+   ```bash
+    cqlsh --cqlversion=3.4.0
+   ```
+   ```sql
+    USE movielens;
+    SELECT * FROM users;
+    exit;
+   ```
+
 ## MongoDB
 
-A huMONGOus document database.
+A hu**MONGO**us document database.
 
 - You can store any kind of data in it
 - MongoDB stores data in JSON-like documents
@@ -337,3 +403,59 @@ primary -> secondary -> secondary
     - MongoDB still integrates with Hadoop, Spark, etc.
 - A SQL connector is available
     - But MongoDB still isn't designed for joins and normalized data
+
+### Setting up MongoDB and creating and integrating Spark
+
+1. Log into the VM
+   ```bash
+   ssh maria_dev@localhost -p 2222
+   sudo su
+   ```
+2. Get the Ambari MongoDB connector
+   ```bash
+   cd /var/lib/ambari-server/resources/stacks/HDP/2.6/services
+   git clone https://github.com/nikunjness/mongo-ambari.git
+   ```
+3. Restart Ambari
+   ```bash
+   service ambari restart
+   ```
+4. Log into Ambari to finish the setup: http://localhost:8080
+5. Go to `Actions` -> `Add Service` and enable `MongoDB`, accept all the defaults and deploy
+6. Make sure the users table is in HDFS under `user/maria_dev/ml-100k/u.user`
+7. Import the users table into MongoDB using Spark
+   ```bash
+   wget http://media.sundog-soft.com/hadoop/MongoSpark.py
+   spark-submit --packages org.mongodb.spark:mongo-spark-connector_2.11:2.6.5 MongoSpark.py
+   ```
+
+### Using the MongoDB shell
+
+1. Log into the VM and start the MongoDB shell
+   ```bash
+   ssh maria_dev@localhost -p 2222
+   mongo
+   ```
+2. Query the database without an index
+   ```bash
+   use movielens
+   db.users.find( { "user_id": 100 } )
+   db.users.explain().find( { "user_id": 100 } )
+   ```
+3. Create an index and query the database with it (this will make the query much faster)
+    ```bash
+    db.users.createIndex( { "user_id": 1 } )
+    db.users.explain().find( { "user_id": 100 } )
+    ```
+4. Aggregate all the users by occupation and get the average age for each occupation
+    ```bash
+    db.users.aggregate( [ { $group: { _id: "$occupation", avgAge: { $avg: "$age" } } } ] )
+    ```
+5. How many users are in the database?
+    ```bash
+    db.users.count()
+    ```
+6. How many users are in the database that are older than 25?
+    ```bash
+    db.users.find( { "age": { $gt: 25 } } ).count()
+    ```

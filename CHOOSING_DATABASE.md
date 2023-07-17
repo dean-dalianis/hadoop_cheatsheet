@@ -48,7 +48,7 @@
 
 ## Examples
 
-### Internal phone directory appli
+### Internal phone directory application
 
 - Scale: limited
 - Consistency: Eventually consistent
