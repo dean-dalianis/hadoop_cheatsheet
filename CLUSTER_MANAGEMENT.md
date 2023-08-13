@@ -201,12 +201,101 @@ MapReduce   Spark    Tez       ->     YARN Applications
 
 ## Oozie
 
+- A system for running and scheduling Hadoop jobs
+
+### Workflow
+
+- A workflow is a collection of actions
+- Chains together MapReduce, Pig, Hive, Sqoop and distcp jobs
+- A workflow is an Acyclic Directed Graph (DAG) of actions
+    - Specified via XML
+
+#### Example workflow
+
+```text
+              -> pig (Extract top-rated movies ID's)
+start -> fork                                           -> join -> hive (Join and filter results) -> end
+              -> sqoop (Extract movie titles)
+```
+
+#### Setting up a Workflow
+
+- Make sure each action works on its own
+- Make a directory in HDFS for the workflow
+- Create a workflow.xml file in the directory
+- Create a job.properties defining any variables workflow.xml needs
+    - This is stored in the local file system where the workflow is run from
+    - These properties can also be set in the workflow.xml file
+
+#### Running
+
+```bash
+oozie job -oozie http://localhost:11000/oozie -config /home/maria_devjob.properties -run
+```
+
+*You can monitor the job in the Oozie web UI: http://localhost:11000/oozie*
+
+### Coordinators
+
+- Schedules workflow execution
+- Launches workflows at a specified time or when data becomes available
+- Run in exactly the same way as workflows
+
+### Oozie Bundles
+
+- New in Oozie 3.0
+- A bundle is a collection of coordinators that can be managed together
+- Example: a bunch of coordinators that process log data
+    - By grouping them together, you can start and stop them all at once (e.g. if there is some problem with the data)
+
 ### A simple oozie workflow
+
+**TODO**
 
 ## Zeppelin
 
+- A notebook-style interface for Big Data
+- Same idea as iPtyhon notebooks
+- Lets you run scripts / code interactively
+- Can interleave code with formatted notes
+- Notebooks can be shared with others on the cluster
+
+### Apache Spark Integration
+
+- Can run Spark code interactively
+    - Speeds up development
+    - Allows for interactive data exploration
+- Can execute SQL queries against SparkSQL
+- Query results can be visualized
+- Makes Spark feel more like a data science tool
+
+### Zeppelin Interpreters
+
+- Zeppelin uses interpreters to run code
+- Each interpreter is responsible for running a specific language
+
 ### Analyzing movie ratings with Zeppelin
+
+**TODO**
 
 ## Hue
 
+- Hadoop User Experience
+- A web UI for Hadoop (Cloudera)
+
 ## Other technologies
+
+### Ganglia
+
+- Distributed monitoring system
+    - Developed by Berkeley
+    - Originally widely used by the scientific community
+    - Wikipedia used to use it
+- It's dead -- last update was in 2008
+
+### Chukwa
+
+- System for collecting and analyzing logs from Hadoop
+- Initially adopted by Netflix, but they've since moved on
+- Got replaced by Flume and Kafka
+- It's dead -- last update was in 2010
